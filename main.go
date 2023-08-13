@@ -6,8 +6,17 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"runtime"
 	"strings"
 )
+
+func cleanFilename(filename string) string {
+	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
+	for _, char := range invalidChars {
+		filename = strings.ReplaceAll(filename, char, "_")
+	}
+	return filename
+}
 
 func main() {
 	fmt.Print("Enter Chromium version: ")
@@ -34,15 +43,22 @@ func main() {
 	}
 	homeDir := usr.HomeDir
 
-	downloadsFolder := fmt.Sprintf("%s/Downloads", homeDir)
+	var downloadsFolder string
+	if runtime.GOOS == "windows" {
+		downloadsFolder = fmt.Sprintf("%s\\Downloads", homeDir)
+	} else {
+		downloadsFolder = fmt.Sprintf("%s/Downloads", homeDir)
+	}
+
 	if _, err := os.Stat(downloadsFolder); os.IsNotExist(err) {
 		os.Mkdir(downloadsFolder, 0755)
 	}
 
 	tokens := strings.Split(url, "/")
 	filename := tokens[len(tokens)-1]
+	filename = cleanFilename(filename)
 
-	outputPath := fmt.Sprintf("%s/%s", downloadsFolder, filename)
+	outputPath := fmt.Sprintf("%s/%s.crx", downloadsFolder, filename)
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		fmt.Println("Error creating output file:", err)
